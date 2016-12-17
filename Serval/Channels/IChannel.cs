@@ -1,14 +1,45 @@
 ﻿using System;
+using System.Net;
+using System.Collections.Immutable;
+using Serval.Connections;
 
 namespace Serval.Channels {
-    interface IChannel {
-        void Connected();
+    public interface IChannel {
+        IServer Server {
+            get;
+        }
 
-        void Received();
+        int InitialBuffers {
+            get;
+        }
 
-        void Send();
+        int BufferSize {
+            get;
+        }
 
-        void Disconnected();
+        int BufferIncrement {
+            get;
+        }
+
+        TimeSpan BufferTimeout {
+            get;
+        }
+
+        int InitialEventArgs {
+            get;
+        }
+
+        int EventArgsIncrement {
+            get;
+        }
+
+        TimeSpan EventArgsTimeout {
+            get;
+        }
+
+        IPEndPoint EndPoint {
+            get;
+        }
     }
 }
 

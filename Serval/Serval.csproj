@@ -29,17 +29,33 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Collections.Immutable">
+      <HintPath>..\packages\System.Collections.Immutable.1.3.0\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Channels\IChannel.cs" />
     <Compile Include="Channels\Channel.cs" />
-    <Compile Include="Connection.cs" />
-    <Compile Include="IConnection.cs" />
+    <Compile Include="Connections\Connection.cs" />
+    <Compile Include="Connections\IConnection.cs" />
+    <Compile Include="Connections\IServer.cs" />
+    <Compile Include="Connections\IListener.cs" />
+    <Compile Include="Connections\Server.cs" />
+    <Compile Include="Connections\Listener.cs" />
+    <Compile Include="Connections\Pooling\GrowingBlockingCollection.cs" />
+    <Compile Include="Connections\Pooling\ByteArrayGrowingBlockingCollection.cs" />
+    <Compile Include="Connections\Pooling\SocketAsyncEventArgsGrowingBlockingCollection.cs" />
+    <Compile Include="Connections\Token.cs" />
+    <Compile Include="Connections\Utils.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="Channels\" />
-    <Folder Include="Sockets\" />
+    <Folder Include="Connections\" />
+    <Folder Include="Connections\Pooling\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
