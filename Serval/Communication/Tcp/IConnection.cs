@@ -2,7 +2,7 @@
 using System.Net;
 using System.Collections.Immutable;
 
-namespace Serval.Connections {
+namespace Serval.Communication.Tcp {
     public interface IConnection {
         EndPoint Address {
             get;
