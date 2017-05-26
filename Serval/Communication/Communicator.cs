@@ -9,11 +9,11 @@ namespace Serval.Communication {
             get;
         }
 
-        protected Pooling.IPool<byte[]> Buffers {
+        protected Pooling.IAsyncPool<byte[]> Buffers {
             get;
         }
 
-        protected Pooling.IPool<SocketAsyncEventArgs> Arguments {
+        protected Pooling.IAsyncPool<SocketAsyncEventArgs> Arguments {
             get;
         }
 
@@ -25,8 +25,8 @@ namespace Serval.Communication {
             if(channel == null)
                 throw new ArgumentNullException("channel");
             Channel = channel;
-            Buffers = new Pooling.ByteArrayPool(Channel.Buffers, Channel.BufferSize);
-            Arguments =  new Pooling.SocketAsyncEventArgsPool(Channel.EventArgs);
+            Buffers = new Pooling.AsyncByteArrayPool(Channel.Buffers, Channel.BufferSize);
+            Arguments =  new Pooling.AsyncSocketAsyncEventArgsPool(Channel.EventArgs);
             Socket = new Socket(addressFamily, socketType, protocolType);
         }
     }

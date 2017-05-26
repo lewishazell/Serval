@@ -1,10 +1,7 @@
-﻿using System;
-
 namespace Serval.Communication.Pooling {
     public interface IPool<T> {
-        T Retreive();
-
+        T Retrieve();
+        
         void Return(T item);
     }
 }
-

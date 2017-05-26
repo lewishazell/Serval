@@ -3,16 +3,18 @@ using System.Net;
 using System.Net.Sockets;
 using System.Linq;
 using System.Collections.Immutable;
+using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace Serval.Communication.Tcp {
     public sealed class Connection {
-        private Channels.Tcp.TcpChannelHandler Handler {
+        internal BufferBlock<byte[]> Receives {
             get;
-        }
+        } = new BufferBlock<byte[]>();
 
-        internal TcpCommunicator Communicator {
+        internal BufferBlock<Tuple<Connection, ImmutableArray<byte>>> Sends {
             get;
-        }
+        } = new BufferBlock<Tuple<Connection, ImmutableArray<byte>>>();
 
         internal Socket Socket {
             get;
@@ -22,23 +24,21 @@ namespace Serval.Communication.Tcp {
             get;
         }
 
-        internal Connection(Channels.Tcp.TcpChannelHandler handler, TcpCommunicator communicator, Socket socket) {
-            if(handler == null)
-                throw new ArgumentNullException("handler");
-            if(communicator == null)
-                throw new ArgumentNullException("communicator");
+        internal Connection(Socket socket) {
             if(socket == null)
-                throw new ArgumentNullException("socket");
-            Handler = handler;
-            Communicator = communicator;
+                throw new ArgumentNullException(nameof(socket));
             EndPoint = socket.RemoteEndPoint;
             Socket = socket;
         }
 
         public void Send(ImmutableArray<byte> data) {
             if(data == null)
-                throw new ArgumentNullException("data");
-            Handler.Send(this, data);
+                throw new ArgumentNullException(nameof(data));
+            Sends.Post(new Tuple<Connection, ImmutableArray<byte>>(this, data));
+        }
+
+        public async Task<byte[]> ReceiveAsync() {
+            return await Receives.ReceiveAsync();
         }
 
         public void Disconnect() {
