@@ -8,9 +8,9 @@ using System.Threading.Tasks.Dataflow;
 
 namespace Serval.Communication.Tcp {
     public sealed class Connection {
-        internal BufferBlock<byte[]> Receives {
+        internal BufferBlock<Tuple<Connection, ImmutableArray<byte>>> Receives {
             get;
-        } = new BufferBlock<byte[]>();
+        } = new BufferBlock<Tuple<Connection, ImmutableArray<byte>>>();
 
         internal BufferBlock<Tuple<Connection, ImmutableArray<byte>>> Sends {
             get;
@@ -37,7 +37,7 @@ namespace Serval.Communication.Tcp {
             Sends.Post(new Tuple<Connection, ImmutableArray<byte>>(this, data));
         }
 
-        public async Task<byte[]> ReceiveAsync() {
+        public async Task<Tuple<Connection, ImmutableArray<byte>>> ReceiveAsync() {
             return await Receives.ReceiveAsync();
         }
 

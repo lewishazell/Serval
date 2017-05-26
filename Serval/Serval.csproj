@@ -48,7 +48,6 @@
     <Compile Include="Communication\Pooling\AsyncFixedPool.cs" />
     <Compile Include="Channels\Tcp\TcpChannel.cs" />
     <Compile Include="Channels\Tcp\Work.cs" />
-    <Compile Include="Communication\Pooling\AsyncWorkPool.cs" />
     <Compile Include="Channels\Tcp\Operation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
