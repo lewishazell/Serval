@@ -9,6 +9,8 @@ using System.Threading.Tasks.Dataflow;
 using Serval.Communication.Tcp;
 
 namespace Serval.Channels.Tcp {
+    using SendTuple = Tuple<Connection, ImmutableArray<byte>, Action>;
+    
     public sealed class TcpChannel : Channel {
         private BufferBlock<Connection> Connects { get; } = new BufferBlock<Connection>();
         private readonly BufferBlock<Connection> _connected = new BufferBlock<Connection>();
@@ -20,27 +22,32 @@ namespace Serval.Channels.Tcp {
         public TcpChannel(IPEndPoint endpoint, int buffers, int bufferSize, int eventArgs) : base(endpoint, buffers, bufferSize, eventArgs) {
             Communicator = new TcpCommunicator(this);
             Communicator.Bind(endpoint, 100);
-            List<Task<Tuple<Connection, ImmutableArray<byte>>>> sends = new List<Task<Tuple<Connection, ImmutableArray<byte>>>>();
+            List<Task<SendTuple>> sends = new List<Task<SendTuple>>();
             Task<Connection> connected = _connected.ReceiveAsync();
             Task.Run(() => Run(sends, connected));
         }
 
-        private void Run(List<Task<Tuple<Connection, ImmutableArray<byte>>>> sends, Task<Connection> connected) {
-            Task<Task<Tuple<Connection, ImmutableArray<byte>>>> monitor =
+        private void Run(List<Task<SendTuple>> sends, Task<Connection> connected) {
+            Task<Task<SendTuple>> monitor =
                 sends.Count != 0 ? Task.WhenAny(sends) : null;
             Task.WhenAny(monitor != null ? new Task[] {connected, monitor} : new Task[] {connected}).ContinueWith(t => {
                 if(connected == t.Result) {
-                    sends.Add(connected.Result.Sends.ReceiveAsync());
-                    Connects.Post(connected.Result);
+                    Connection connection = connected.Result;
+                    sends.Add(connection.GetSendAsync());
                     connected = _connected.ReceiveAsync();
                     if(monitor != null) monitor.Dispose();
+                    Task.Run(() => Run(sends, connected));
+                    Connects.Post(connection);
                 } else if(monitor != null && monitor == t.Result) {
-                    Task<Tuple<Connection, ImmutableArray<byte>>> send = monitor.Result;
+                    Task<SendTuple> send = monitor.Result;
+                    Connection connection = send.Result.Item1;
+                    ImmutableArray<byte> data = send.Result.Item2;
+                    Action callback = send.Result.Item3;
                     sends.Remove(send);
-                    Communicator.Send(send.Result.Item1.Socket, send.Result.Item2.ToArray());
-                    sends.Add(send.Result.Item1.Sends.ReceiveAsync());
+                    sends.Add(connection.GetSendAsync());
+                    Task.Run(() => Run(sends, connected));
+                    Communicator.Send(connection.Socket, data.ToArray(), callback);
                 }
-                Task.Run(() => Run(sends, connected));
             });
         }
 
@@ -59,7 +66,9 @@ namespace Serval.Channels.Tcp {
                 throw new ArgumentNullException(nameof(sender));
             if(data == null)
                 throw new ArgumentNullException(nameof(data));
-            sender.Receives.Post(new Tuple<Connection, ImmutableArray<byte>>(sender, data.ToImmutableArray()));
+            Task.Run(() => {
+                sender.PostReceive(data.ToImmutableArray());
+            });
         }
 
         internal void Disconnect(Connection disconnected) {

@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Net;
 using System.Collections.Immutable;
+using System.Threading.Tasks;
 
 namespace Serval.Communication.Tcp {
     public interface IConnection {
-        EndPoint Address {
+        EndPoint EndPoint {
             get;
         }
 
-        void Send(ImmutableArray<byte> data);
+        Task<Connection> SendAsync(ImmutableArray<byte> data);
+
+        Task<Tuple<Connection, ImmutableArray<byte>>> ReceiveAsync();
 
         void Disconnect();
     }

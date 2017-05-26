@@ -88,13 +88,13 @@ namespace Serval.Communication.Tcp {
             }
         }
 
-        public void Send(byte[] data) {
+        public void Send(byte[] data, Action callback = null) {
             if(data == null)
                 throw new ArgumentNullException(nameof(data));
-            Send(Socket, data);
+            Send(Socket, data, callback);
         }
 
-        internal void Send(Socket socket, byte[] data) {
+        internal void Send(Socket socket, byte[] data, Action callback) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             if(data == null)
@@ -102,6 +102,7 @@ namespace Serval.Communication.Tcp {
             Arguments.RetrieveAsync().ContinueWith(t1 => {
                 SocketAsyncEventArgs args = t1.Result;
                 args.Completed += Sent;
+                args.UserToken = callback;
                 Buffers.RetrieveAsync().ContinueWith(t2 => {
                     byte[] buffer = t2.Result;
                     args.SetBuffer(buffer, 0, buffer.Length);
@@ -120,9 +121,11 @@ namespace Serval.Communication.Tcp {
             Buffers.Return(args.Buffer);
             args.Completed -= Sent;
             args.AcceptSocket = null;
+            Action callback = args.UserToken as Action;
             args.UserToken = null;
             args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
             Arguments.Return(args);
+            callback?.Invoke();
         }
     }
 }
