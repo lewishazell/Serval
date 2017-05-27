@@ -25,9 +25,9 @@ namespace Serval.Channels.Tcp {
             get;
         }
 
-        public TcpChannel(IPEndPoint endpoint, int buffers, int bufferSize, int eventArgs) : base(endpoint, buffers, bufferSize, eventArgs) {
+        public TcpChannel(IPEndPoint endpoint, int buffers, int bufferSize, int eventArgs, int listenBacklog) : base(endpoint, buffers, bufferSize, eventArgs) {
             Communicator = new TcpCommunicator(this);
-            Communicator.Bind(endpoint, 100);
+            Communicator.Bind(endpoint, listenBacklog);
             Dictionary<Connection, Task<SendTuple>> sends = new Dictionary<Connection, Task<SendTuple>>();
             Run();
         }
