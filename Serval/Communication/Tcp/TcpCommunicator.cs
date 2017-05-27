@@ -83,13 +83,13 @@ namespace Serval.Communication.Tcp {
             }
         }
 
-        public void Send(byte[] data, Action callback = null) {
+        public void Send(byte[] data, Action<bool> callback = null) {
             if(data == null)
                 throw new ArgumentNullException(nameof(data));
             Send(Socket, data, callback);
         }
 
-        internal async void Send(Socket socket, byte[] data, Action callback) {
+        internal async void Send(Socket socket, byte[] data, Action<bool> callback) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             if(data == null)
@@ -100,8 +100,17 @@ namespace Serval.Communication.Tcp {
             byte[] buffer = await Buffers.RetrieveAsync();
             args.SetBuffer(buffer, 0, buffer.Length);
             Array.Copy(data, args.Buffer, Math.Min(data.Length, args.Buffer.Length));
-            if(!socket.SendAsync(args))
-                Sent(socket, args);
+            try {
+                if(!socket.SendAsync(args))
+                    Sent(socket, args);
+            }catch(ObjectDisposedException) {
+                args.Completed -= Sent;
+                args.UserToken = null;
+                Buffers.Return(args.Buffer);
+                args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
+                Arguments.Return(args);
+                callback(false);
+            }
         }
 
         private void Sent(object sender, SocketAsyncEventArgs args) {
@@ -112,11 +121,11 @@ namespace Serval.Communication.Tcp {
             Buffers.Return(args.Buffer);
             args.Completed -= Sent;
             args.AcceptSocket = null;
-            Action callback = args.UserToken as Action;
+            Action<bool> callback = args.UserToken as Action<bool>;
             args.UserToken = null;
             args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
             Arguments.Return(args);
-            callback?.Invoke();
+            callback?.Invoke(true);
         }
 
         internal async void Disconnect(Socket socket) {
@@ -134,7 +143,6 @@ namespace Serval.Communication.Tcp {
                 throw new ArgumentNullException(nameof(sender));
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
-            ((Socket) sender).Close();
             args.Completed -= Disconnected;
             args.AcceptSocket = null;
             args.UserToken = null;

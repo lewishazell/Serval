@@ -1,7 +1,4 @@
-﻿using System;
-using System.Net;
-using System.Collections.Immutable;
-using System.Threading.Tasks;
+﻿using System.Net;
 
 namespace Serval.Communication.Tcp {
     public interface IConnection {

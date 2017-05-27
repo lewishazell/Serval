@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Threading.Tasks.Dataflow;
 using Serval.Communication.Tcp;
 
 namespace Serval.Channels.Tcp {
-    using SendTuple = Tuple<Connection, ImmutableArray<byte>, Action>;
-    using ReceiveTuple = Tuple<Connection, ImmutableArray<byte>>;
+    using SendTuple = Tuple<Connection, byte[], Action<bool>>;
+    using ReceiveTuple = Tuple<Connection, byte[]>;
     
     public sealed class TcpChannel : Channel {
         private readonly BufferBlock<Connection> _accepts = new BufferBlock<Connection>();
@@ -46,12 +44,13 @@ namespace Serval.Channels.Tcp {
                     Task.Run(() => _connected.Post(connection));
                 }else if(t == sending) {
                     Connection connection = sending.Result.Item1;
-                    ImmutableArray<byte> data = sending.Result.Item2;
-                    Action callback = sending.Result.Item3;
+                    byte[] data = sending.Result.Item2;
+                    Action<bool> callback = sending.Result.Item3;
                     tasks[1] = sending = _sending.ReceiveAsync();
                     Communicator.Send(connection.Socket, data.ToArray(), callback);
                 }else if(t == disconnected) {
                     Connection connection = disconnected.Result;
+                    connection.Socket.Close();
                     tasks[2] = disconnected = _disconnects.ReceiveAsync();
                     Task.Run(() => _disconnected.Post(connection));
                 }else if(t == disconnecting) {
@@ -82,21 +81,21 @@ namespace Serval.Channels.Tcp {
             if(data == null)
                 throw new ArgumentNullException(nameof(data));
             Task.Run(() => {
-                _received.Post(new Tuple<Connection, ImmutableArray<byte>>(sender, data.ToImmutableArray()));
+                _received.Post(new Tuple<Connection, byte[]>(sender, data));
             });
         }
         
-        public async Task<Tuple<Connection, ImmutableArray<byte>>> ReceiveAsync() {
+        public async Task<Tuple<Connection, byte[]>> ReceiveAsync() {
             return await _received.ReceiveAsync();
         }
         
-        public Task<Connection> SendAsync(Connection connection, ImmutableArray<byte> data) {
+        public Task<Tuple<Connection, bool>> SendAsync(Connection connection, byte[] data) {
             if(data == null)
                 throw new ArgumentNullException(nameof(data));
-            TaskCompletionSource<Connection> tcs = new TaskCompletionSource<Connection>();
-            _sending.Post(new SendTuple(connection, data, () => { 
+            TaskCompletionSource<Tuple<Connection, bool>> tcs = new TaskCompletionSource<Tuple<Connection, bool>>();
+            _sending.Post(new SendTuple(connection, data, successful => { 
                 Task.Run(() => {
-                    tcs.SetResult(connection);
+                    tcs.SetResult(new Tuple<Connection, bool>(connection, successful));
                 }); 
             }));
             return tcs.Task;

@@ -29,9 +29,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Collections.Immutable">
-      <HintPath>..\packages\System.Collections.Immutable.1.3.1\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
-    </Reference>
     <Reference Include="System.Threading.Tasks.Dataflow" />
   </ItemGroup>
   <ItemGroup>
@@ -47,7 +44,6 @@
     <Compile Include="Communication\Tcp\IConnection.cs" />
     <Compile Include="Communication\Pooling\AsyncFixedPool.cs" />
     <Compile Include="Channels\Tcp\TcpChannel.cs" />
-    <Compile Include="Channels\Tcp\Work.cs" />
     <Compile Include="Channels\Tcp\Operation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -57,8 +53,5 @@
     <Folder Include="Communication\Pooling\" />
     <Folder Include="Communication\Tcp\" />
     <Folder Include="Channels\Tcp\" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
 </Project>
