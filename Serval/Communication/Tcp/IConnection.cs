@@ -8,12 +8,6 @@ namespace Serval.Communication.Tcp {
         EndPoint EndPoint {
             get;
         }
-
-        Task<Connection> SendAsync(ImmutableArray<byte> data);
-
-        Task<Tuple<Connection, ImmutableArray<byte>>> ReceiveAsync();
-
-        void Disconnect();
     }
 }
 

@@ -17,44 +17,40 @@ namespace Serval.Communication.Tcp {
             Channel = channel;
         }
 
-        internal void Bind(IPEndPoint ep, int listenBacklog) {
+        internal async void Bind(IPEndPoint ep, int listenBacklog) {
             if(ep == null)
                 throw new ArgumentNullException(nameof(ep));
             Socket.Bind(ep);
             Socket.Listen(listenBacklog);
-            Arguments.RetrieveAsync().ContinueWith(t => {
-                SocketAsyncEventArgs args = t.Result;
-                args.Completed += Heard;
-                if(!Socket.AcceptAsync(args))
-                    Heard(Socket, args);
-            });
+            SocketAsyncEventArgs args = await Arguments.RetrieveAsync();
+            args.Completed += Heard;
+            if(!Socket.AcceptAsync(args))
+                Heard(Socket, args);
         }
 
-        private void Heard(object sender, SocketAsyncEventArgs args) {
+        private async void Heard(object sender, SocketAsyncEventArgs args) {
             if(sender == null)
                 throw new ArgumentNullException(nameof(sender));
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
             Socket accepted = args.AcceptSocket;
-            Arguments.RetrieveAsync().ContinueWith(t => {
-                SocketAsyncEventArgs receive = t.Result;
-                Connection connection = new Connection(accepted);
-                receive.UserToken = connection;
-                receive.Completed += Received;
-                receive.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
-                // "Read" nothing from the socket - basically, wait for activity.
-                Task.Run(() => {
-                    Channel.Accepted(connection);
-                    if(!accepted.ReceiveAsync(receive))
-                        Received(accepted, receive);
-                });
-                args.AcceptSocket = null;
-                if(!Socket.AcceptAsync(args))
-                    Heard(Socket, args);
+            SocketAsyncEventArgs receive = await Arguments.RetrieveAsync();
+            Connection connection = new Connection(accepted);
+            receive.UserToken = connection;
+            receive.Completed += Received;
+            receive.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
+            // "Read" nothing from the socket - basically, wait for activity.
+            Task.Run(() => {
+                Channel.Accepted(connection);
+                if(!accepted.ReceiveAsync(receive))
+                    Received(accepted, receive);
             });
+            args.AcceptSocket = null;
+            if(!Socket.AcceptAsync(args))
+                Heard(Socket, args);
         }
 
-        private void Received(object sender, SocketAsyncEventArgs args) {
+        private async void Received(object sender, SocketAsyncEventArgs args) {
             if(sender == null)
                 throw new ArgumentNullException(nameof(sender));
             if(args == null)
@@ -62,19 +58,18 @@ namespace Serval.Communication.Tcp {
             Connection connection = (Connection) args.UserToken;
             Socket socket = (Socket) sender;
             if(args.Buffer == Pooling.AsyncByteArrayPool.NO_BUFFER) {
-                Buffers.RetrieveAsync().ContinueWith(task => {
-                    byte[] buffer = task.Result;
-                    args.SetBuffer(buffer, 0, buffer.Length);
-                    if(!socket.ReceiveAsync(args)) Received(sender, args);
-                });
-            }else if(args.BytesTransferred == 0) {
+                byte[] buffer = await Buffers.RetrieveAsync();
+                args.SetBuffer(buffer, 0, buffer.Length);
+                if(!socket.ReceiveAsync(args))
+                    Received(sender, args);
+            }else if(!socket.Connected || args.BytesTransferred == 0) {
                 Buffers.Return(args.Buffer);
                 args.Completed -= Received;
                 args.UserToken = null;
                 args.AcceptSocket = null;
                 args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
                 Arguments.Return(args);
-                Channel.Disconnect(connection);
+                Channel.Disconnected(connection);
             } else {
                 byte[] received = new byte[args.BytesTransferred];
                 Array.Copy(args.Buffer, 0, received, 0, args.BytesTransferred); // Copy the received bytes, only for outputting purposes.
@@ -94,23 +89,19 @@ namespace Serval.Communication.Tcp {
             Send(Socket, data, callback);
         }
 
-        internal void Send(Socket socket, byte[] data, Action callback) {
+        internal async void Send(Socket socket, byte[] data, Action callback) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             if(data == null)
                 throw new ArgumentNullException(nameof(data));
-            Arguments.RetrieveAsync().ContinueWith(t1 => {
-                SocketAsyncEventArgs args = t1.Result;
-                args.Completed += Sent;
-                args.UserToken = callback;
-                Buffers.RetrieveAsync().ContinueWith(t2 => {
-                    byte[] buffer = t2.Result;
-                    args.SetBuffer(buffer, 0, buffer.Length);
-                    Array.Copy(data, args.Buffer, Math.Min(data.Length, args.Buffer.Length));
-                    if(!socket.SendAsync(args))
-                        Sent(socket, args);
-                });
-            });
+            SocketAsyncEventArgs args = await Arguments.RetrieveAsync();
+            args.Completed += Sent;
+            args.UserToken = callback;
+            byte[] buffer = await Buffers.RetrieveAsync();
+            args.SetBuffer(buffer, 0, buffer.Length);
+            Array.Copy(data, args.Buffer, Math.Min(data.Length, args.Buffer.Length));
+            if(!socket.SendAsync(args))
+                Sent(socket, args);
         }
 
         private void Sent(object sender, SocketAsyncEventArgs args) {
@@ -126,6 +117,26 @@ namespace Serval.Communication.Tcp {
             args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
             Arguments.Return(args);
             callback?.Invoke();
+        }
+
+        internal async void Disconnect(Socket socket) {
+            if(socket == null)
+                throw new ArgumentNullException(nameof(socket));
+            SocketAsyncEventArgs args = await Arguments.RetrieveAsync();
+            args.Completed += Disconnected;
+            if(!socket.DisconnectAsync(args))
+                Disconnected(socket, args);
+        }
+
+        private void Disconnected(object sender, SocketAsyncEventArgs args) {
+            if(sender == null)
+                throw new ArgumentNullException(nameof(sender));
+            if(args == null)
+                throw new ArgumentNullException(nameof(args));
+            args.Completed -= Disconnected;
+            args.AcceptSocket = null;
+            args.UserToken = null;
+            Arguments.Return(args);
         }
     }
 }
