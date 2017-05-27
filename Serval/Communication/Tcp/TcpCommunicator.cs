@@ -44,7 +44,7 @@ namespace Serval.Communication.Tcp {
                 receive.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
                 // "Read" nothing from the socket - basically, wait for activity.
                 Task.Run(() => {
-                    Channel.Connected(connection);
+                    Channel.Accepted(connection);
                     if(!accepted.ReceiveAsync(receive))
                         Received(accepted, receive);
                 });
@@ -65,16 +65,16 @@ namespace Serval.Communication.Tcp {
                 Buffers.RetrieveAsync().ContinueWith(task => {
                     byte[] buffer = task.Result;
                     args.SetBuffer(buffer, 0, buffer.Length);
-                    if(!socket.ReceiveAsync(args))
-                        Received(sender, args);
+                    if(!socket.ReceiveAsync(args)) Received(sender, args);
                 });
-            }else if(args.BytesTransferred == 0 || !socket.Connected) { // Disconnected
+            }else if(args.BytesTransferred == 0) {
                 Buffers.Return(args.Buffer);
                 args.Completed -= Received;
                 args.UserToken = null;
                 args.AcceptSocket = null;
                 args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
                 Arguments.Return(args);
+                Channel.Disconnect(connection);
             } else {
                 byte[] received = new byte[args.BytesTransferred];
                 Array.Copy(args.Buffer, 0, received, 0, args.BytesTransferred); // Copy the received bytes, only for outputting purposes.
