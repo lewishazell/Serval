@@ -122,6 +122,7 @@ namespace Serval.Communication.Tcp {
         internal async void Disconnect(Socket socket) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
+            socket.Shutdown(SocketShutdown.Both);
             SocketAsyncEventArgs args = await Arguments.RetrieveAsync();
             args.Completed += Disconnected;
             if(!socket.DisconnectAsync(args))
@@ -133,6 +134,7 @@ namespace Serval.Communication.Tcp {
                 throw new ArgumentNullException(nameof(sender));
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
+            ((Socket) sender).Close();
             args.Completed -= Disconnected;
             args.AcceptSocket = null;
             args.UserToken = null;
