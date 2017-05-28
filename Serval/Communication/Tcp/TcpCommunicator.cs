@@ -109,9 +109,9 @@ namespace Serval.Communication.Tcp {
             args.Completed += Sent;
             args.UserToken = new Tuple<TaskCompletionSource<object>, object>(tcs, token);
             byte[] buffer = await Buffers.RetrieveAsync();
-            args.SetBuffer(buffer, 0, buffer.Length);
-            Array.Copy(data, args.Buffer, Math.Min(data.Length, args.Buffer.Length));
-            Array.Clear(args.Buffer, data.Length, args.Buffer.Length - data.Length);
+            int length = Math.Min(data.Length, buffer.Length);
+            args.SetBuffer(buffer, 0, length);
+            Array.Copy(data, args.Buffer, length);
             try {
                 if(!socket.SendAsync(args))
                     Sent(socket, args);
