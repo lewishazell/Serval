@@ -68,18 +68,26 @@ namespace Serval.Communication.Tcp {
                     Received(sender, args);
             }else {
                 if(!socket.Connected || args.BytesTransferred == 0) {
+                    args.Completed -= Received;
+                    args.UserToken = null;
+                    args.AcceptSocket = null;
+                    args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
+                    Buffers.Return(args.Buffer);
+                    Arguments.Return(args);
                     Task.Run(() => _disconnected.Post(token));
                 } else {
                     byte[] received = new byte[args.BytesTransferred];
                     Array.Copy(args.Buffer, 0, received, 0, args.BytesTransferred); // Copy the received bytes, only for outputting purposes.
-                    Task.Run(() => _received.Post(new Tuple<object, byte[]>(token, received)));
+                    if(socket.Available == 0) {
+                        args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
+                        Buffers.Return(args.Buffer);
+                    }
+                    Task.Run(() => {
+                        _received.Post(new Tuple<object, byte[]>(token, received));
+                        if(!socket.ReceiveAsync(args))
+                            Received(socket, args);
+                    });
                 }
-                Buffers.Return(args.Buffer);
-                args.Completed -= Received;
-                args.UserToken = null;
-                args.AcceptSocket = null;
-                args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
-                Arguments.Return(args);
             }
         }
 
@@ -103,6 +111,7 @@ namespace Serval.Communication.Tcp {
             byte[] buffer = await Buffers.RetrieveAsync();
             args.SetBuffer(buffer, 0, buffer.Length);
             Array.Copy(data, args.Buffer, Math.Min(data.Length, args.Buffer.Length));
+            Array.Clear(args.Buffer, data.Length, args.Buffer.Length - data.Length);
             try {
                 if(!socket.SendAsync(args))
                     Sent(socket, args);

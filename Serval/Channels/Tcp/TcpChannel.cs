@@ -33,7 +33,7 @@ namespace Serval.Channels.Tcp {
             Task<object> disconnected = Communicator.DisconnectedAsync();
             Task<SendTuple> sending = _sending.ReceiveAsync();
             Task<Connection> disconnecting = _disconnecting.ReceiveAsync();
-            Task[] tasks = new Task[] { connected, sending, disconnected, disconnecting };
+            Task[] tasks = new Task[] {connected, sending, disconnected, disconnecting};
             while(true) {
                 Task t = await Task.WhenAny(tasks);
                 if(t == connected) {
@@ -42,24 +42,23 @@ namespace Serval.Channels.Tcp {
                     tasks[0] = connected = Communicator.AcceptedAsync();
                     _connected.Post(connection);
                     Communicator.Read(socket, connection);
-                }else if(t == sending) {
+                } else if(t == sending) {
                     Connection connection = sending.Result.Item1;
                     byte[] data = sending.Result.Item2;
                     TaskCompletionSource<Connection> tcs = sending.Result.Item3;
                     tasks[1] = sending = _sending.ReceiveAsync();
                     try {
-                        await Communicator.Send(connection.Socket, data.ToArray(), connection).ContinueWith(sent => {
-                            tcs.SetResult((Connection) sent.Result);
-                        });
+                        Communicator.Send(connection.Socket, data.ToArray(), connection)
+                            .ContinueWith(sent => { tcs.SetResult((Connection) sent.Result); });
                     } catch(Exception ex) {
                         tcs.SetException(ex);
                     }
-                }else if(t == disconnected) {
+                } else if(t == disconnected) {
                     Connection connection = (Connection) disconnected.Result;
                     connection.Socket.Close();
                     tasks[2] = disconnected = Communicator.DisconnectedAsync();
                     _disconnected.Post(connection);
-                }else if(t == disconnecting) {
+                } else if(t == disconnecting) {
                     Connection connection = disconnecting.Result;
                     Communicator.Disconnect(connection.Socket);
                     tasks[3] = disconnecting = _disconnecting.ReceiveAsync();
@@ -77,9 +76,7 @@ namespace Serval.Channels.Tcp {
         
         public async Task<ReceiveTuple> ReceiveAsync() {
             Tuple<object, byte[]> tuple = await Communicator.ReceivedAsync();
-            Connection connection = (Connection) tuple.Item1;
-            Communicator.Read(connection.Socket, connection);
-            return new ReceiveTuple(connection, tuple.Item2);
+            return new ReceiveTuple((Connection) tuple.Item1, tuple.Item2);
         }
         
         public Task<Connection> SendAsync(Connection connection, byte[] data) {
