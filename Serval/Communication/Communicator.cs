@@ -5,10 +5,6 @@ using Serval.Channels;
 
 namespace Serval.Communication {
     public abstract class Communicator {
-        private Channel Channel {
-            get;
-        }
-
         protected Pooling.IAsyncPool<byte[]> Buffers {
             get;
         }
@@ -21,12 +17,9 @@ namespace Serval.Communication {
             get;
         }
 
-        public Communicator(Channel channel, AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) {
-            if(channel == null)
-                throw new ArgumentNullException("channel");
-            Channel = channel;
-            Buffers = new Pooling.AsyncByteArrayPool(Channel.Buffers, Channel.BufferSize);
-            Arguments =  new Pooling.AsyncSocketAsyncEventArgsPool(Channel.EventArgs);
+        public Communicator(int buffers, int bufferSize, int eventArgs, AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) {
+            Buffers = new Pooling.AsyncByteArrayPool(buffers, bufferSize);
+            Arguments =  new Pooling.AsyncSocketAsyncEventArgsPool(eventArgs);
             Socket = new Socket(addressFamily, socketType, protocolType);
         }
     }
