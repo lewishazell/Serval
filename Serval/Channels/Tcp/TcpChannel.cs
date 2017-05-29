@@ -38,10 +38,14 @@ namespace Serval.Channels.Tcp {
                 Task t = await Task.WhenAny(tasks);
                 if(t == connected) {
                     Socket socket = connected.Result;
-                    Connection connection = new Connection(socket);
-                    tasks[0] = connected = Communicator.AcceptedAsync();
-                    _connected.Post(connection);
-                    Communicator.Read(socket, connection);
+                    try {
+                        Connection connection = new Connection(socket);
+                        tasks[0] = connected = Communicator.AcceptedAsync();
+                        _connected.Post(connection);
+                        Communicator.Read(socket, connection);
+                    } catch(SocketException) {
+                        socket.Close();
+                    }
                 } else if(t == sending) {
                     Connection connection = sending.Result.Item1;
                     byte[] data = sending.Result.Item2;

@@ -30,7 +30,7 @@ namespace Serval.Communication.Tcp {
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
             Socket socket = args.AcceptSocket;
-            Task.Run(() => _accepted.Post(socket));
+            _accepted.Post(socket);
             args.AcceptSocket = null;
             if(!Socket.AcceptAsync(args))
                 Heard(Socket, args);
@@ -74,7 +74,7 @@ namespace Serval.Communication.Tcp {
                     args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
                     Buffers.Return(args.Buffer);
                     Arguments.Return(args);
-                    Task.Run(() => _disconnected.Post(token));
+                    _disconnected.Post(token);
                 } else {
                     byte[] received = new byte[args.BytesTransferred];
                     Array.Copy(args.Buffer, 0, received, 0, args.BytesTransferred); // Copy the received bytes, only for outputting purposes.
@@ -82,11 +82,9 @@ namespace Serval.Communication.Tcp {
                         args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
                         Buffers.Return(args.Buffer);
                     }
-                    Task.Run(() => {
-                        _received.Post(new Tuple<object, byte[]>(token, received));
-                        if(!socket.ReceiveAsync(args))
-                            Received(socket, args);
-                    });
+                    _received.Post(new Tuple<object, byte[]>(token, received));
+                    if(!socket.ReceiveAsync(args))
+                        Received(socket, args);
                 }
             }
         }
@@ -121,7 +119,7 @@ namespace Serval.Communication.Tcp {
                 Buffers.Return(args.Buffer);
                 args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
                 Arguments.Return(args);
-                Task.Run(() => tcs.SetException(ex));
+                tcs.SetException(ex);
             }
             return tcs.Task;
         }
@@ -142,9 +140,9 @@ namespace Serval.Communication.Tcp {
                 args.UserToken = null;
                 args.SetBuffer(Pooling.AsyncByteArrayPool.NO_BUFFER, 0, 0);
                 Arguments.Return(args);
-                Task.Run(() => tcs.SetResult(token));
+                tcs.SetResult(token);
             } catch(Exception ex) {
-                Task.Run(() => tcs.SetException(ex));
+                tcs.SetException(ex);
             }
         }
 
