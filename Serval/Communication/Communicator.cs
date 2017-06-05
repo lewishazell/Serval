@@ -5,11 +5,11 @@ using Serval.Channels;
 
 namespace Serval.Communication {
     public abstract class Communicator {
-        protected Pooling.IAsyncPool<byte[]> Buffers {
+        protected Pooling.IPool<byte[]> Buffers {
             get;
         }
 
-        protected Pooling.IAsyncPool<SocketAsyncEventArgs> Arguments {
+        protected Pooling.IPool<SocketAsyncEventArgs> Arguments {
             get;
         }
 
@@ -18,8 +18,8 @@ namespace Serval.Communication {
         }
 
         public Communicator(int buffers, int bufferSize, int eventArgs, AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType) {
-            Buffers = new Pooling.AsyncByteArrayPool(buffers, bufferSize);
-            Arguments =  new Pooling.AsyncSocketAsyncEventArgsPool(eventArgs);
+            Buffers = new Pooling.ByteArrayPool(buffers, bufferSize);
+            Arguments =  new Pooling.SocketAsyncEventArgsPool(eventArgs);
             Socket = new Socket(addressFamily, socketType, protocolType);
         }
     }
