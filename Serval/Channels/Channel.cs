@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Net;
 
-using Serval.Communication;
-
 namespace Serval.Channels {
     public abstract class Channel {
         public IPEndPoint EndPoint {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Net.Sockets;
-
-using Serval.Channels;
+﻿using System.Net.Sockets;
 
 namespace Serval.Communication {
     public abstract class Communicator {
