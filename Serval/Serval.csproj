@@ -44,7 +44,6 @@
     <Compile Include="Communication\Tcp\Connection.cs" />
     <Compile Include="Communication\Tcp\IConnection.cs" />
     <Compile Include="Channels\Tcp\TcpChannel.cs" />
-    <Compile Include="Channels\Tcp\Operation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup />
