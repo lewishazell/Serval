@@ -30,19 +30,23 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Threading.Tasks.Dataflow" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Transceive\Tcp\Encoding\TcpDecodingReceiver.cs" />
+    <Compile Include="Transceive\Tcp\Encoding\TcpEncodingTransmitter.cs" />
+    <Compile Include="Transceive\Tcp\ITcpReceiver.cs" />
+    <Compile Include="Transceive\Tcp\TcpForwardingReceiver.cs" />
+    <Compile Include="Transceive\Tcp\TcpForwardingTransmitter.cs" />
+    <Compile Include="Channels\IChannel.cs" />
+    <Compile Include="Transceive\Tcp\ITcpTransmitter.cs" />
     <Compile Include="Communication\Pooling\ByteArrayPool.cs" />
     <Compile Include="Communication\Pooling\FixedBlockingPool.cs" />
     <Compile Include="Communication\Pooling\IPool.cs" />
     <Compile Include="Communication\Pooling\SocketAsyncEventArgsPool.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Channels\Channel.cs" />
     <Compile Include="Communication\Communicator.cs" />
     <Compile Include="Communication\Tcp\TcpCommunicator.cs" />
     <Compile Include="Communication\Tcp\Connection.cs" />
-    <Compile Include="Communication\Tcp\IConnection.cs" />
     <Compile Include="Channels\Tcp\TcpChannel.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -1,19 +1,13 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 
 namespace Serval.Communication.Tcp {
-    public class TcpCommunicator : Communicator {
-        private readonly BufferBlock<Socket> _accepted = new BufferBlock<Socket>();
-        private readonly BufferBlock<Tuple<object, byte[]>> _received = new BufferBlock<Tuple<object, byte[]>>();
-        private readonly BufferBlock<object> _disconnected = new BufferBlock<object>();
-        
+    public abstract class TcpCommunicator : Communicator {
         public TcpCommunicator(int buffers, int bufferSize, int eventArgs, AddressFamily family) : base(buffers, bufferSize, eventArgs, family, SocketType.Stream, ProtocolType.Tcp) {
         }
 
-        internal void Bind(IPEndPoint ep, int listenBacklog) {
+        protected void Bind(IPEndPoint ep, int listenBacklog) {
             if(ep == null)
                 throw new ArgumentNullException(nameof(ep));
             Socket.Bind(ep);
@@ -30,17 +24,15 @@ namespace Serval.Communication.Tcp {
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
             Socket socket = args.AcceptSocket;
-            _accepted.Post(socket);
             args.AcceptSocket = null;
+            Connected(socket);
             if(!Socket.AcceptAsync(args))
                 Heard(Socket, args);
         }
 
-        internal Task<Socket> AcceptedAsync() {
-            return _accepted.ReceiveAsync();
-        }
+        protected abstract void Connected(Socket socket);
 
-        internal void Read(Socket socket, object token) {
+        protected void Read(Socket socket, object token) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             if(token == null)
@@ -74,38 +66,33 @@ namespace Serval.Communication.Tcp {
                     args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
                     Buffers.Return(args.Buffer);
                     Arguments.Return(args);
-                    _disconnected.Post(token);
+                    Disconnected(token);
                 } else {
                     byte[] received = new byte[args.BytesTransferred];
                     Array.Copy(args.Buffer, 0, received, 0, args.BytesTransferred); // Copy the received bytes, only for outputting purposes.
+                    Received(token, received);
                     if(socket.Available == 0) {
                         args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
                         Buffers.Return(args.Buffer);
                     }
-                    _received.Post(new Tuple<object, byte[]>(token, received));
                     if(!socket.ReceiveAsync(args))
                         Received(socket, args);
                 }
             }
         }
 
-        internal Task<Tuple<object, byte[]>> ReceivedAsync() {
-            return _received.ReceiveAsync();
-        }
+        protected abstract void Received(object token, byte[] data);
 
-        internal Task<object> DisconnectedAsync() {
-            return _disconnected.ReceiveAsync();
-        }
+        protected abstract void Disconnected(object token);
 
-        internal Task<object> Send(Socket socket, byte[] data, object token) {
+        protected void SendAsync(Socket socket, byte[] data, object token) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             if(data == null)
                 throw new ArgumentNullException(nameof(data));
-            TaskCompletionSource<object> tcs = new TaskCompletionSource<object>();
             SocketAsyncEventArgs args = Arguments.Retrieve();
             args.Completed += Sent;
-            args.UserToken = new Tuple<TaskCompletionSource<object>, object>(tcs, token);
+            args.UserToken = token;
             byte[] buffer = Buffers.Retrieve();
             int length = Math.Min(data.Length, buffer.Length);
             args.SetBuffer(buffer, 0, length);
@@ -119,9 +106,8 @@ namespace Serval.Communication.Tcp {
                 Buffers.Return(args.Buffer);
                 args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
                 Arguments.Return(args);
-                tcs.SetException(ex);
+                Caught(token, ex);
             }
-            return tcs.Task;
         }
 
         private void Sent(object sender, SocketAsyncEventArgs args) {
@@ -129,10 +115,7 @@ namespace Serval.Communication.Tcp {
                 throw new ArgumentNullException(nameof(sender));
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
-            Tuple<TaskCompletionSource<object>, object> tuple =
-                (Tuple<TaskCompletionSource<object>, object>) args.UserToken;
-            TaskCompletionSource<object> tcs = tuple.Item1;
-            object token = tuple.Item2;
+            object token = args.UserToken;
             try {
                 Buffers.Return(args.Buffer);
                 args.Completed -= Sent;
@@ -140,13 +123,17 @@ namespace Serval.Communication.Tcp {
                 args.UserToken = null;
                 args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
                 Arguments.Return(args);
-                tcs.SetResult(token);
+                Sent(token);
             } catch(Exception ex) {
-                tcs.SetException(ex);
+                Caught(token, ex);
             }
         }
 
-        internal void Disconnect(Socket socket) {
+        protected abstract void Sent(object token);
+
+        protected abstract void Caught(object token, Exception ex);
+
+        internal void DisconnectAsync(Socket socket) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             socket.Shutdown(SocketShutdown.Both);

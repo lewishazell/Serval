@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 
 namespace Serval.Communication.Tcp {
-    public sealed class Connection : IConnection {
+    public sealed class Connection {
         internal Socket Socket {
             get;
         }
