@@ -32,6 +32,11 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Parallel\AsyncDispatcher.cs" />
+    <Compile Include="Parallel\ConsumerDispatcher.cs" />
+    <Compile Include="Parallel\IDispatcher.cs" />
+    <Compile Include="Transceive\Tcp\Dispatching\TcpDispatchingReceiver.cs" />
+    <Compile Include="Transceive\Tcp\Dispatching\TcpDispatchingTransmitter.cs" />
     <Compile Include="Transceive\Tcp\Encoding\TcpDecodingReceiver.cs" />
     <Compile Include="Transceive\Tcp\Encoding\TcpEncodingTransmitter.cs" />
     <Compile Include="Transceive\Tcp\ITcpReceiver.cs" />

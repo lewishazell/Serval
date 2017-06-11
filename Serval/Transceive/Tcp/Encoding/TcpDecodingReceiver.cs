@@ -2,7 +2,7 @@
 using Serval.Communication.Tcp;
 
 namespace Serval.Transceive.Tcp.Encoding {
-    public class TcpDecodingReceiver : TcpForwardingReceiver<byte[], string> {
+    public sealed class TcpDecodingReceiver : TcpForwardingReceiver<byte[], string> {
         private System.Text.Encoding Encoding {
             get;
         }
