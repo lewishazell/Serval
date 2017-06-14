@@ -28,10 +28,10 @@ namespace Serval.Transceive.Tcp.Dispatching {
             _dispatcher.Invoke(() => base.Sent(connection));
         }
 
-        public override void Disconnected(Connection connection) {
+        public override void Disconnected(Connection connection, IDisposable disposer) {
             if(connection == null)
                 throw new ArgumentNullException(nameof(connection));
-            _dispatcher.Invoke(() => base.Disconnected(connection));
+            _dispatcher.Invoke(() => base.Disconnected(connection, disposer));
         }
 
         public override void Caught(Connection connection, Exception exception) {

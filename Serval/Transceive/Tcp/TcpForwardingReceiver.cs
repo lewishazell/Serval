@@ -23,8 +23,8 @@ namespace Serval.Transceive.Tcp {
             Child.Sent(connection ?? throw new ArgumentNullException(nameof(connection)));
         }
 
-        public virtual void Disconnected(Connection connection) {
-            Child.Disconnected(connection ?? throw new ArgumentNullException(nameof(connection)));
+        public virtual void Disconnected(Connection connection, IDisposable disposer) {
+            Child.Disconnected(connection ?? throw new ArgumentNullException(nameof(connection)), disposer);
         }
 
         public virtual void Caught(Connection connection, Exception exception) {

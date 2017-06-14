@@ -1,21 +1,23 @@
 ﻿using System;
 
 namespace Serval.Communication.Pooling {
-    internal class ByteArrayPool : FixedBlockingPool<byte[]> {
-        internal static readonly byte[] NO_BUFFER = new byte[0];
-
-        internal int BufferSize {
+    public sealed class ByteArrayPool : FixedBlockingPool<byte[]> {
+        public int BufferSize {
             get;
         }
 
-        internal ByteArrayPool(int size, int bufferSize) : base() {
+        public ByteArrayPool(int size, int bufferSize) : base() {
+            if(size < 0)
+                throw new ArgumentException("Argument " + nameof(size) + " must not be negative.");
+            if(bufferSize < 0)
+                throw new ArgumentException("Argument " + nameof(bufferSize) + " must not be negative.");
             BufferSize = bufferSize;
             byte[][] generated = Generate(size);
             foreach(byte[] bytes in generated)
                 Pool.Add(bytes);
         }
 
-        internal new void Return(byte[] item) {
+        public new void Return(byte[] item) {
             Array.Clear(item, 0, item.Length);
             base.Return(item);
         }

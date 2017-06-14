@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace Serval.Parallel {
-    public class ConsumerDispatcher : IDispatcher {
+    public sealed class ConsumerDispatcher : IDispatcher {
         private readonly BlockingCollection<Action> _queue = new BlockingCollection<Action>();
         private readonly CancellationTokenSource _cancellation = new CancellationTokenSource();
 

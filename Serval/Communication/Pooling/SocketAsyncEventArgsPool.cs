@@ -1,8 +1,12 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Net.Sockets;
 
 namespace Serval.Communication.Pooling {
-    internal class SocketAsyncEventArgsPool : FixedBlockingPool<SocketAsyncEventArgs> {
-        internal SocketAsyncEventArgsPool(int size) : base(size) { }
+    public sealed class SocketAsyncEventArgsPool : FixedBlockingPool<SocketAsyncEventArgs> {
+        public SocketAsyncEventArgsPool(int size) : base(size) {
+            if(size < 0)
+                throw new ArgumentException("Argument " + nameof(size) + " must not be negative.");
+        }
 
         protected override SocketAsyncEventArgs[] Generate(int amount) {
             SocketAsyncEventArgs[] args = new SocketAsyncEventArgs[amount];

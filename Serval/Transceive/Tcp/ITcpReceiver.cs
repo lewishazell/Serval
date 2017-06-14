@@ -1,5 +1,4 @@
 ﻿using System;
-using Serval.Channels.Tcp;
 using Serval.Communication.Tcp;
 
 namespace Serval.Transceive.Tcp {
@@ -10,7 +9,7 @@ namespace Serval.Transceive.Tcp {
 
         void Sent(Connection connection);
 
-        void Disconnected(Connection connection);
+        void Disconnected(Connection connection, IDisposable disposer);
 
         void Caught(Connection connection, Exception expception);
     }

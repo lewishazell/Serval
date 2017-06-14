@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 
 namespace Serval.Communication.Pooling {
-    internal abstract class FixedBlockingPool<T> : IPool<T> {
+    public abstract class FixedBlockingPool<T> : IPool<T> {
         protected BlockingCollection<T> Pool {
             get;
         } = new BlockingCollection<T>();

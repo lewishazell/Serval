@@ -2,9 +2,13 @@
 using System.Net;
 using System.Net.Sockets;
 
+using Serval.Communication.Pooling;
+
 namespace Serval.Communication.Tcp {
     public abstract class TcpCommunicator : Communicator {
-        public TcpCommunicator(int buffers, int bufferSize, int eventArgs, AddressFamily family) : base(buffers, bufferSize, eventArgs, family, SocketType.Stream, ProtocolType.Tcp) {
+        private static readonly byte[] NO_BUFFER = new byte[0];
+
+        public TcpCommunicator(IPool<byte[]> buffers, IPool<SocketAsyncEventArgs> arguments, AddressFamily addressFamily) : base(buffers, arguments, addressFamily, SocketType.Stream, ProtocolType.Tcp) {
         }
 
         protected void Bind(IPEndPoint ep, int listenBacklog) {
@@ -40,7 +44,7 @@ namespace Serval.Communication.Tcp {
             SocketAsyncEventArgs args = Arguments.Retrieve();
             args.UserToken = token;
             args.Completed += Received;
-            args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
+            args.SetBuffer(NO_BUFFER, 0, 0);
             Read(socket, args);
         }
 
@@ -49,13 +53,8 @@ namespace Serval.Communication.Tcp {
                 throw new ArgumentNullException(nameof(socket));
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
-            try {
-                if(!socket.ReceiveAsync(args))
-                    Received(socket, args);
-            } catch(Exception ex) {
-                Caught(args.UserToken, ex);
-                Read(socket, args);
-            }
+            if(!socket.ReceiveAsync(args))
+                Received(socket, args);
         }
 
         private void Received(object sender, SocketAsyncEventArgs args) {
@@ -65,7 +64,7 @@ namespace Serval.Communication.Tcp {
                 throw new ArgumentNullException(nameof(args));
             object token = args.UserToken;
             Socket socket = (Socket) sender;
-            if(args.Buffer == Pooling.ByteArrayPool.NO_BUFFER) {
+            if(args.Buffer == NO_BUFFER) {
                 byte[] buffer = Buffers.Retrieve();
                 args.SetBuffer(buffer, 0, buffer.Length);
                 Read(socket, args);
@@ -75,16 +74,16 @@ namespace Serval.Communication.Tcp {
                     args.UserToken = null;
                     args.AcceptSocket = null;
                     Buffers.Return(args.Buffer);
-                    args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
+                    args.SetBuffer(NO_BUFFER, 0, 0);
                     Arguments.Return(args);
                     Disconnected(token);
                 } else {
                     byte[] received = new byte[args.BytesTransferred];
-                    Array.Copy(args.Buffer, 0, received, 0, args.BytesTransferred); // Copy the received bytes, only for outputting purposes.
+                    Array.Copy(args.Buffer, 0, received, 0, args.BytesTransferred);
                     Received(token, received);
                     if(socket.Available == 0) {
                         Buffers.Return(args.Buffer);
-                        args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
+                        args.SetBuffer(NO_BUFFER, 0, 0);
                     }
                     Read(socket, args);
                 }
@@ -114,7 +113,7 @@ namespace Serval.Communication.Tcp {
                 args.Completed -= Sent;
                 args.UserToken = null;
                 Buffers.Return(args.Buffer);
-                args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
+                args.SetBuffer(NO_BUFFER, 0, 0);
                 Arguments.Return(args);
                 Caught(token, ex);
             }
@@ -127,11 +126,11 @@ namespace Serval.Communication.Tcp {
                 throw new ArgumentNullException(nameof(args));
             object token = args.UserToken;
             try {
-                Buffers.Return(args.Buffer);
                 args.Completed -= Sent;
                 args.AcceptSocket = null;
                 args.UserToken = null;
-                args.SetBuffer(Pooling.ByteArrayPool.NO_BUFFER, 0, 0);
+                Buffers.Return(args.Buffer);
+                args.SetBuffer(NO_BUFFER, 0, 0);
                 Arguments.Return(args);
                 Sent(token);
             } catch(Exception ex) {

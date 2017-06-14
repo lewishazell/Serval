@@ -32,6 +32,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Disposer.cs" />
     <Compile Include="Parallel\AsyncDispatcher.cs" />
     <Compile Include="Parallel\ConsumerDispatcher.cs" />
     <Compile Include="Parallel\IDispatcher.cs" />

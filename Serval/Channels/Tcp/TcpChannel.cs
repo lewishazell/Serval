@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+
 using Serval.Communication.Tcp;
 using Serval.Transceive.Tcp;
+using Serval.Communication.Pooling;
 
 namespace Serval.Channels.Tcp {    
-    public sealed class TcpChannel : TcpCommunicator, IChannel, ITcpTransmitter<byte[]> {
+    public class TcpChannel : TcpCommunicator, IChannel, ITcpTransmitter<byte[]> {
         public IPEndPoint EndPoint {
             get;
         }
@@ -14,18 +16,15 @@ namespace Serval.Channels.Tcp {
             get;
         }
 
-        public TcpChannel(IPEndPoint endpoint, int buffers, int bufferSize, int eventArgs, int listenBacklog, AddressFamily addressFamily, ITcpReceiver<byte[]> child) : base(buffers, bufferSize, eventArgs, addressFamily) {
-            if(buffers < 0)
-                throw new ArgumentException("Argument " + nameof(buffers) + " must not be negative.");
-            if(bufferSize < 0)
-                throw new ArgumentException("Argument " + nameof(bufferSize) + " must not be negative.");
-            if(eventArgs < 0)
-                throw new ArgumentException("Argument " + nameof(eventArgs) + " must not be negative.");
+        public TcpChannel(IPEndPoint endpoint, IPool<byte[]> buffers, IPool<SocketAsyncEventArgs> arguments, int listenBacklog, AddressFamily addressFamily, ITcpReceiver<byte[]> child) : base(buffers, arguments, addressFamily) {
             if(listenBacklog < 0)
                 throw new ArgumentException("Argument " + nameof(listenBacklog) + " must not be negative.");
             EndPoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
             Child = child ?? throw new ArgumentNullException(nameof(child));
             Bind(endpoint, listenBacklog);
+        }
+
+        public TcpChannel(IPEndPoint endpoint, int buffers, int bufferSize, int eventArgs, int listenBacklog, AddressFamily addressFamily, ITcpReceiver<byte[]> child) : this(endpoint, new ByteArrayPool(buffers, bufferSize), new SocketAsyncEventArgsPool(eventArgs), listenBacklog, addressFamily, child) {
         }
 
         protected override void Connected(Socket socket) {
@@ -43,7 +42,8 @@ namespace Serval.Channels.Tcp {
         }
 
         protected override void Disconnected(object token) {
-            Child.Disconnected((Connection) token ?? throw new ArgumentNullException(nameof(token)));
+            Connection connection = (Connection) token ?? throw new ArgumentNullException(nameof(token));
+            Child.Disconnected(connection, new Disposer(connection.Socket));
         }
 
         protected override void Caught(object token, Exception exception) {

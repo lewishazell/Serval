@@ -2,7 +2,7 @@
 using System.Threading;
 
 namespace Serval.Parallel {
-    public class AsyncDispatcher : IDispatcher {
+    public sealed class AsyncDispatcher : IDispatcher {
         private readonly SemaphoreSlim semaphore;
 
         public AsyncDispatcher(int parallelism = 1) {
