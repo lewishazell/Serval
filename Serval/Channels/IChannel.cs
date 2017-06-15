@@ -2,6 +2,6 @@
 
 namespace Serval.Channels {
     public interface IChannel {
-        IPEndPoint EndPoint { get;  }
+        EndPoint EndPoint { get;  }
     }
 }

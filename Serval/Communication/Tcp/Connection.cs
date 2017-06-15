@@ -13,10 +13,8 @@ namespace Serval.Communication.Tcp {
         }
 
         internal Connection(Socket socket) {
-            if(socket == null)
-                throw new ArgumentNullException(nameof(socket));
             EndPoint = socket.RemoteEndPoint;
-            Socket = socket;
+            Socket = socket ?? throw new ArgumentNullException(nameof(socket));
         }
     }
 }

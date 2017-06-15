@@ -32,14 +32,27 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Channels\Udp\UdpChannel.cs" />
+    <Compile Include="Communication\Udp\UdpCommunicator.cs" />
     <Compile Include="Disposer.cs" />
     <Compile Include="Parallel\AsyncDispatcher.cs" />
-    <Compile Include="Parallel\ConsumerDispatcher.cs" />
+    <Compile Include="Parallel\Dispatcher.cs" />
     <Compile Include="Parallel\IDispatcher.cs" />
-    <Compile Include="Transceive\Tcp\Dispatching\TcpDispatchingReceiver.cs" />
-    <Compile Include="Transceive\Tcp\Dispatching\TcpDispatchingTransmitter.cs" />
-    <Compile Include="Transceive\Tcp\Encoding\TcpDecodingReceiver.cs" />
-    <Compile Include="Transceive\Tcp\Encoding\TcpEncodingTransmitter.cs" />
+    <Compile Include="Transceive\Dispatching\DispatchingReceiver.cs" />
+    <Compile Include="Transceive\Dispatching\DispatchingTransmitter.cs" />
+    <Compile Include="Transceive\Dispatching\Udp\UdpDispatchingReceiver.cs" />
+    <Compile Include="Transceive\Dispatching\Udp\UdpDispatchingTransmitter.cs" />
+    <Compile Include="Transceive\Encoding\Tcp\TcpDecodingReceiver.cs" />
+    <Compile Include="Transceive\Encoding\Tcp\TcpEncodingTransmitter.cs" />
+    <Compile Include="Transceive\Encoding\Udp\UdpDecodingReceiver.cs" />
+    <Compile Include="Transceive\Encoding\Udp\UdpEncodingTransmitter.cs" />
+    <Compile Include="Transceive\ForwardingReceiver.cs" />
+    <Compile Include="Transceive\ForwardingTransmitter.cs" />
+    <Compile Include="Transceive\ITransmitter.cs" />
+    <Compile Include="Transceive\Dispatching\Tcp\TcpDispatchingReceiver.cs" />
+    <Compile Include="Transceive\Dispatching\Tcp\TcpDispatchingTransmitter.cs" />
+    <Compile Include="Transceive\Encoding\DecodingReceiver.cs" />
+    <Compile Include="Transceive\Encoding\EncodingTransmitter.cs" />
     <Compile Include="Transceive\Tcp\ITcpReceiver.cs" />
     <Compile Include="Transceive\Tcp\TcpForwardingReceiver.cs" />
     <Compile Include="Transceive\Tcp\TcpForwardingTransmitter.cs" />
@@ -54,6 +67,11 @@
     <Compile Include="Communication\Tcp\TcpCommunicator.cs" />
     <Compile Include="Communication\Tcp\Connection.cs" />
     <Compile Include="Channels\Tcp\TcpChannel.cs" />
+    <Compile Include="Transceive\IReceiver.cs" />
+    <Compile Include="Transceive\Udp\IUdpReceiver.cs" />
+    <Compile Include="Transceive\Udp\IUdpTransmitter.cs" />
+    <Compile Include="Transceive\Udp\UdpForwardingReceiver.cs" />
+    <Compile Include="Transceive\Udp\UdpForwardingTransmitter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup />

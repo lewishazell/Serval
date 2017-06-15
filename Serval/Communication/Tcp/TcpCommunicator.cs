@@ -6,12 +6,10 @@ using Serval.Communication.Pooling;
 
 namespace Serval.Communication.Tcp {
     public abstract class TcpCommunicator : Communicator {
-        private static readonly byte[] NO_BUFFER = new byte[0];
-
         public TcpCommunicator(IPool<byte[]> buffers, IPool<SocketAsyncEventArgs> arguments, AddressFamily addressFamily) : base(buffers, arguments, addressFamily, SocketType.Stream, ProtocolType.Tcp) {
         }
 
-        protected void Bind(IPEndPoint ep, int listenBacklog) {
+        protected void Bind(EndPoint ep, int listenBacklog) {
             if(ep == null)
                 throw new ArgumentNullException(nameof(ep));
             Socket.Bind(ep);
@@ -22,21 +20,21 @@ namespace Serval.Communication.Tcp {
                 Heard(Socket, args);
         }
 
-        private void Heard(object sender, SocketAsyncEventArgs args) {
+        protected void Heard(object sender, SocketAsyncEventArgs args) {
             if(sender == null)
                 throw new ArgumentNullException(nameof(sender));
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
             Socket socket = args.AcceptSocket;
-            args.AcceptSocket = null;
             Connected(socket);
+            args.AcceptSocket = null;
             if(!Socket.AcceptAsync(args))
                 Heard(Socket, args);
         }
 
         protected abstract void Connected(Socket socket);
 
-        protected void Read(Socket socket, object token) {
+        protected void Receive(Socket socket, object token) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             if(token == null)
@@ -45,15 +43,13 @@ namespace Serval.Communication.Tcp {
             args.UserToken = token;
             args.Completed += Received;
             args.SetBuffer(NO_BUFFER, 0, 0);
-            Read(socket, args);
+            Receive(socket, args);
         }
 
-        private void Read(Socket socket, SocketAsyncEventArgs args) {
+        private void Receive(Socket socket, SocketAsyncEventArgs args) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
-            if(args == null)
-                throw new ArgumentNullException(nameof(args));
-            if(!socket.ReceiveAsync(args))
+            if(!socket.ReceiveAsync(args ?? throw new ArgumentNullException(nameof(args))))
                 Received(socket, args);
         }
 
@@ -67,7 +63,7 @@ namespace Serval.Communication.Tcp {
             if(args.Buffer == NO_BUFFER) {
                 byte[] buffer = Buffers.Retrieve();
                 args.SetBuffer(buffer, 0, buffer.Length);
-                Read(socket, args);
+                Receive(socket, args);
             }else {
                 if(!socket.Connected || args.BytesTransferred == 0) {
                     args.Completed -= Received;
@@ -85,7 +81,7 @@ namespace Serval.Communication.Tcp {
                         Buffers.Return(args.Buffer);
                         args.SetBuffer(NO_BUFFER, 0, 0);
                     }
-                    Read(socket, args);
+                    Receive(socket, args);
                 }
             }
         }
@@ -94,7 +90,7 @@ namespace Serval.Communication.Tcp {
 
         protected abstract void Disconnected(object token);
 
-        protected void SendAsync(Socket socket, byte[] data, object token) {
+        protected void Send(Socket socket, byte[] data, object token) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             if(data == null)
@@ -103,16 +99,16 @@ namespace Serval.Communication.Tcp {
             args.Completed += Sent;
             args.UserToken = token;
             byte[] buffer = Buffers.Retrieve();
+            int length = Math.Min(data.Length, buffer.Length);
+            args.SetBuffer(buffer, 0, length);
+            Array.Copy(data, args.Buffer, length);
             try {
-                int length = Math.Min(data.Length, buffer.Length);
-                args.SetBuffer(buffer, 0, length);
-                Array.Copy(data, args.Buffer, length);
                 if(!socket.SendAsync(args))
                     Sent(socket, args);
             }catch(Exception ex) {
                 args.Completed -= Sent;
                 args.UserToken = null;
-                Buffers.Return(args.Buffer);
+                Buffers.Return(buffer);
                 args.SetBuffer(NO_BUFFER, 0, 0);
                 Arguments.Return(args);
                 Caught(token, ex);
@@ -125,13 +121,12 @@ namespace Serval.Communication.Tcp {
             if(args == null)
                 throw new ArgumentNullException(nameof(args));
             object token = args.UserToken;
+            args.Completed -= Sent;
+            args.UserToken = null;
+            Buffers.Return(args.Buffer);
+            args.SetBuffer(NO_BUFFER, 0, 0);
+            Arguments.Return(args);
             try {
-                args.Completed -= Sent;
-                args.AcceptSocket = null;
-                args.UserToken = null;
-                Buffers.Return(args.Buffer);
-                args.SetBuffer(NO_BUFFER, 0, 0);
-                Arguments.Return(args);
                 Sent(token);
             } catch(Exception ex) {
                 Caught(token, ex);
@@ -142,7 +137,7 @@ namespace Serval.Communication.Tcp {
 
         protected abstract void Caught(object token, Exception ex);
 
-        internal void DisconnectAsync(Socket socket) {
+        internal void Disconnect(Socket socket) {
             if(socket == null)
                 throw new ArgumentNullException(nameof(socket));
             socket.Shutdown(SocketShutdown.Both);
